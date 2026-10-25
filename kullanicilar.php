@@ -16,7 +16,8 @@ try {
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (isset($_POST['islem']) && $_POST['islem'] == 'ekle') {
             $stmt = $conn->prepare("INSERT INTO kullanicilar (kullanici_id, kullanici_ad, parola, yetki_turu, email) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssss", $_POST['kullanici_id'], $_POST['kullanici_ad'], $_POST['parola'], $_POST['yetki_turu'], $_POST['email']);
+            $parolaHash = password_hash($_POST['parola'], PASSWORD_DEFAULT);
+            $stmt->bind_param("sssss", $_POST['kullanici_id'], $_POST['kullanici_ad'], $parolaHash, $_POST['yetki_turu'], $_POST['email']);
             $stmt->execute();
             $basari = "Kullanıcı başarıyla eklendi!";
         } elseif (isset($_POST['sil']) && isset($_POST['kullanici_id_sil'])) {
@@ -25,14 +26,22 @@ try {
             $stmt->execute();
             $basari = "Kullanıcı başarıyla silindi!";
         } elseif (isset($_POST['guncelle']) && isset($_POST['kullanici_id_guncelle'])) {
-            $stmt = $conn->prepare("UPDATE kullanicilar SET kullanici_ad = ?, parola = ?, yetki_turu = ?, email = ? WHERE kullanici_id = ?");
-            $stmt->bind_param("sssss", $_POST['kullanici_ad'], $_POST['parola'], $_POST['yetki_turu'], $_POST['email'], $_POST['kullanici_id_guncelle']);
+            if (!empty($_POST['parola'])) {
+                // Yeni parola girildiyse hash'leyip güncelle
+                $parolaHash = password_hash($_POST['parola'], PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("UPDATE kullanicilar SET kullanici_ad = ?, parola = ?, yetki_turu = ?, email = ? WHERE kullanici_id = ?");
+                $stmt->bind_param("sssss", $_POST['kullanici_ad'], $parolaHash, $_POST['yetki_turu'], $_POST['email'], $_POST['kullanici_id_guncelle']);
+            } else {
+                // Parola alanı boşsa mevcut parola korunur
+                $stmt = $conn->prepare("UPDATE kullanicilar SET kullanici_ad = ?, yetki_turu = ?, email = ? WHERE kullanici_id = ?");
+                $stmt->bind_param("ssss", $_POST['kullanici_ad'], $_POST['yetki_turu'], $_POST['email'], $_POST['kullanici_id_guncelle']);
+            }
             $stmt->execute();
             $basari = "Kullanıcı başarıyla güncellendi!";
         }
     }
 
-    $result = $conn->query("SELECT * FROM kullanicilar");
+    $result = $conn->query("SELECT kullanici_id, kullanici_ad, yetki_turu, email FROM kullanicilar");
     $kullanicilar = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
 
@@ -72,7 +81,7 @@ try {
             <div class="form-group">
                 <label>Kullanıcı ID</label><input type="text" name="kullanici_id" required>
                 <label>Kullanıcı Adı</label><input type="text" name="kullanici_ad" required>
-                <label>Parola</label><input type="text" name="parola" required>
+                <label>Parola</label><input type="password" name="parola" required>
                 <label>Yetki Türü</label><select name="yetki_turu" required>
                     <option value="Admin">Admin</option>
                     <option value="Gorevli">Görevli</option>
@@ -86,13 +95,12 @@ try {
 
         <h3>Kullanıcı Listesi</h3>
         <table>
-            <thead><tr><th>Kullanıcı ID</th><th>Kullanıcı Adı</th><th>Parola</th><th>Yetki Türü</th><th>E-posta</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>Kullanıcı ID</th><th>Kullanıcı Adı</th><th>Yetki Türü</th><th>E-posta</th><th>İşlem</th></tr></thead>
             <tbody>
                 <?php foreach ($kullanicilar as $kullanici): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($kullanici['kullanici_id']); ?></td>
                         <td><?php echo htmlspecialchars($kullanici['kullanici_ad']); ?></td>
-                        <td><?php echo htmlspecialchars($kullanici['parola']); ?></td>
                         <td><?php echo htmlspecialchars($kullanici['yetki_turu']); ?></td>
                         <td><?php echo htmlspecialchars($kullanici['email']); ?></td>
                         <td>
@@ -103,7 +111,7 @@ try {
                             <form method="POST" style="display:inline;">
                                 <input type="hidden" name="kullanici_id_guncelle" value="<?php echo htmlspecialchars($kullanici['kullanici_id']); ?>">
                                 <input type="text" name="kullanici_ad" value="<?php echo htmlspecialchars($kullanici['kullanici_ad']); ?>" required>
-                                <input type="text" name="parola" value="<?php echo htmlspecialchars($kullanici['parola']); ?>" required>
+                                <input type="password" name="parola" placeholder="Yeni parola (boş = değişmez)">
                                 <select name="yetki_turu" required>
                                     <option value="Admin" <?php echo $kullanici['yetki_turu'] == 'Admin' ? 'selected' : ''; ?>>Admin</option>
                                     <option value="Gorevli" <?php echo $kullanici['yetki_turu'] == 'Gorevli' ? 'selected' : ''; ?>>Görevli</option>

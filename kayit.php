@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $yetki = $_POST['yetkiTuru'];
     $email = trim($_POST['kullaniciEmail']);
 
-    // Parola güvenliği için hash'lenmesi önerilir:
-    // $parolaHash = password_hash($parola, PASSWORD_DEFAULT);
+    // Parola veritabanına hash'lenmiş olarak kaydedilir
+    $parolaHash = password_hash($parola, PASSWORD_DEFAULT);
 
     $baglanti = dbBaglan();
     // Kayıtlı kullanıcı adı ya da e-posta var mı kontrolü
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $kontrol->close();
         $sorgu = $baglanti->prepare("INSERT INTO kullanicilar (kullanici_id, kullanici_ad, parola, yetki_turu, email) VALUES (?, ?, ?, ?, ?)");
-        $sorgu->bind_param("sssss", $kullaniciId, $kullaniciAd, $parola, $yetki, $email);
+        $sorgu->bind_param("sssss", $kullaniciId, $kullaniciAd, $parolaHash, $yetki, $email);
         $sorgu->execute();
         $sorgu->close();
         dbKapat($baglanti);

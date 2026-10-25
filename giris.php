@@ -7,13 +7,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $parola = $_POST['parola'];
 
     $baglanti = dbBaglan();
-    $sorgu = $baglanti->prepare("SELECT kullanici_id, yetki_turu FROM kullanicilar WHERE kullanici_ad = ? AND parola = ?");
-    $sorgu->bind_param("ss", $kullaniciAd, $parola);
+    $sorgu = $baglanti->prepare("SELECT kullanici_id, yetki_turu, parola FROM kullanicilar WHERE kullanici_ad = ?");
+    $sorgu->bind_param("s", $kullaniciAd);
     $sorgu->execute();
     $sonuc = $sorgu->get_result();
+    $kullanici = $sonuc->fetch_assoc();
 
-    if ($sonuc->num_rows > 0) {
-        $kullanici = $sonuc->fetch_assoc();
+    $girisBasarili = false;
+    if ($kullanici) {
+        if (password_verify($parola, $kullanici['parola'])) {
+            $girisBasarili = true;
+        } elseif (hash_equals((string)$kullanici['parola'], $parola)) {
+            // Eski düz metin parola: doğrulandı, hash'lenmiş haliyle güncelle
+            $girisBasarili = true;
+            $yeniHash = password_hash($parola, PASSWORD_DEFAULT);
+            $guncelle = $baglanti->prepare("UPDATE kullanicilar SET parola = ? WHERE kullanici_id = ?");
+            $guncelle->bind_param("ss", $yeniHash, $kullanici['kullanici_id']);
+            $guncelle->execute();
+            $guncelle->close();
+        }
+    }
+
+    if ($girisBasarili) {
+        session_regenerate_id(true);
         $_SESSION['kullanici_id'] = $kullanici['kullanici_id'];
         $_SESSION['yetki_turu'] = $kullanici['yetki_turu'];
         header("Location: ana_sayfa.php");
