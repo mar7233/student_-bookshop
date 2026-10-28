@@ -6,6 +6,20 @@ A PHP and MySQL web application for managing book rentals to students: inventory
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
 ![CSS](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 
+## Screenshots
+
+| Login | Dashboard |
+|---|---|
+| ![Login page](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Rentals | Books |
+|---|---|
+| ![Rental management](docs/screenshots/kiralama.png) | ![Book management](docs/screenshots/kitaplar.png) |
+
+![Late returns and fines](docs/screenshots/gecikmeler.png)
+
+*Screenshots use demo data.*
+
 ## Features
 
 - **Users and roles**: register, log in and log out, with session-based access control
